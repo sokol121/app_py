@@ -22,6 +22,4 @@ INSERT INTO sensorboard_sensor (sensor_id, sensorboard_id) VALUES ('Taos ch2', 1
 INSERT INTO sensorboard_sensor (sensor_id, sensorboard_id) VALUES ('ADXL202JE-X', 1);
 INSERT INTO sensorboard_sensor (sensor_id, sensorboard_id) VALUES ('ADXL202JE-Y', 1);
 
-delete from mote;
-
 commit;

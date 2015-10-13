@@ -29,8 +29,7 @@ def mote_list(db):
 
 @route('/chart/<mote>/<sensor>')
 def chart(db, sensor = "test sensor", mote = "no mote"):
-    db.execute('select name_of_measurment, unit  from sensor where id = %s', (sensor,))
-    output = template('chart', sensor = sensor, mote = mote, db = db)
+    output = template('chart', sensor = sensor, mote = mote, sensors = getSensorList(mote, sensor, db), db = db)
     return output
 
 @route('/getData/<sensor>/<mote>')
@@ -38,18 +37,33 @@ def getData(sensor, mote, db):
     parameters= (sensor,mote)
     db.execute("select value, timestamp from reading where sensor_id = %s and mote_id = %s order by timestamp", parameters)
     result = db.fetchall()
-    values = [[ int(mktime(value['timestamp'].timetuple()) * 1000 ), value['value']] for value in result]
+#    values = [[ int(mktime(value['timestamp'].timetuple()) * 1000 ), value['value']] for value in result]
+    values = [[ value['timestamp'], value['value']] for value in result]
     stringJson = json.dumps(values)
     return stringJson
 
-@route('/getSensorReadingRange/<sensor>/<mote>/<timestamp>')
-def getSensorReadingRange(sensor, mote, timestamp ,p, db):
-    parameters= (sensor,timestamp)
-    db.execute("select value, timestamp from reading where sensor_id = %s and mote_id = %s order by timestamp where timestamp > %", parameters)
+@route('/getNewSensorReading/<sensor>/<mote>/<timestamp>')
+def getNewSensorReading(sensor, mote, timestamp, db):
+    parameters= (sensor, mote, timestamp)
+    db.execute("select value, timestamp from reading where sensor_id = %s and mote_id = %s and timestamp > %s order by timestamp", parameters)
     result = db.fetchall()
     if result:
-        return {'minDate' :str(result[0]['min']), 'maxDate' : mktime(result[0]['max'].timetuple())}
+        values = [[ value['timestamp'], value['value']] for value in result]
+        stringJson = json.dumps(values)
+        return stringJson
     return {'empty'}
+
+
+def getSensorList(mote, sensor, db):
+    params = (mote, sensor)
+    statement = ("SELECT * , "
+                "(select value from reading where sensor_id = sb_s.sensor_id and mote_id = m.id order by timestamp desc limit 1)  as value " 
+                "FROM ((sensor s join sensorboard_sensor sb_s on s.id = sb_s.sensor_id) join sensorboard sb on sb.id = sb_s.sensorboard_id) "
+                    "join mote m on m.sensorboard_id = sb.name where m.id = %s and s.id != %s")                   
+    db.execute(statement, params)
+    sensors = db.fetchall()
+    return sensors                    
+                     
 
 @route('/getSensorParams/<sensor>')
 def getSensorParams(sensor, db):
@@ -70,4 +84,4 @@ def getMotes(db):
     return result
     
     
-run(host = '192.168.1.5', port = '80', debug=True)
+run(host = '192.168.0.105', port = '80', debug='TRUE')
